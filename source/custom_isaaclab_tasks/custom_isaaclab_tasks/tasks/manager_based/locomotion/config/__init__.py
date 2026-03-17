@@ -11,13 +11,12 @@ from . import agents
 # Register Gym environments.
 ##
 
-
 gym.register(
-    id="Template-Custom-Isaaclab-Tasks-v0",
+    id="Locomotion-Manager-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.custom_isaaclab_tasks_env_cfg:CustomIsaaclabTasksEnvCfg",
-        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
+        "env_cfg_entry_point": f"{__name__}.flat_env_cfg:G1FlatEnvCfg",
+        "tdmpc2_cfg_entry_point": f"{agents.__name__}:tdmpc2_cfg.yaml",
     },
 )
