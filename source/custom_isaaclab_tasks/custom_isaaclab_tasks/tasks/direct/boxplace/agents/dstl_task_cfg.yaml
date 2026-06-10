@@ -33,7 +33,7 @@ data_dir: ???
 num_r_d: 1
 dyn_uncer_beta_coef: 0 # 1 for full exploration, 0 for full exploitation
 train_reward: true # false to not train an extrinsic reward model at all
-train_rl: true
+train_rl: false
 
 # planning
 mpc: true

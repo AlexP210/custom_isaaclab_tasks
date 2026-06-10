@@ -33,15 +33,17 @@ class BoxPlaceEnv(DirectRLEnv):
     cfg: BoxPlaceEnvCfg
 
     def __init__(self, cfg: BoxPlaceEnvCfg, render_mode: str | None = None, **kwargs):
+        super().__init__(cfg, render_mode, **kwargs)
         # Update number of obs/states
-        cfg.observation_space = gym.spaces.Dict({
+        camera_resolution = (cfg.tiled_camera.height, cfg.tiled_camera.width)
+        self.observation_space = gym.spaces.Dict({
             "state": gym.spaces.Box(-float("inf"), float("inf"), shape=(sum([OBS_DIM_CFG[obs] for obs in cfg.obs_order])+cfg.action_space,)), 
-            "rgb": gym.spaces.Box(-float("inf"), float("inf"), shape=(3, 64, 64))
+            "rgb": gym.spaces.Box(-float("inf"), float("inf"), shape=(3, *camera_resolution))
         })
-        cfg.state_space = sum([STATE_DIM_CFG[state] for state in cfg.state_order])
+        self.state_dim = sum([STATE_DIM_CFG[state] for state in cfg.state_order])
+        self.max_episode_steps = (cfg.episode_length_s // cfg.sim.dt) // cfg.decimation
         self.cfg_task = cfg.task
 
-        super().__init__(cfg, render_mode, **kwargs)
 
         factory_utils.set_body_inertias(self._robot, self.scene.num_envs)
         self._init_tensors()
@@ -383,15 +385,21 @@ class BoxPlaceEnv(DirectRLEnv):
         visual_obs = torch.permute(raw_visual_obs, dims=(0,3,1,2))
 
         if self.cfg.write_image_to_file:
-            save_images_to_file(raw_visual_obs[0:1]/255.0, f"cartpole_current_obs.png")
-
+            save_images_to_file(raw_visual_obs[0:1]/255.0, f"/data/AlexPleava/cartpole_current_obs.png")
         _, state_dict = self._get_factory_obs_state_dict()
         state_tensors = factory_utils.collapse_obs_dict(
             state_dict, self.cfg.state_order
         )
         self.extras["state"] = state_tensors
-            
-        return {"state": obs_tensors, "rgb": visual_obs}
+
+        parallel_obs = {"state": obs_tensors, "rgb": visual_obs}
+        # parallel_obs = torch.load("/home/AlexPleava/projects/distill-plan/baselines/evaluation/scripts/dstl/observation.pt")
+
+        # with open("observation.txt", "w") as obs_file:
+        #     obs_file.write(str(parallel_obs))
+        # assert False
+
+        return parallel_obs#{"state": obs_tensors, "rgb": visual_obs}
 
     def _reset_buffers(self, env_ids):
         """Reset buffers."""
@@ -843,10 +851,12 @@ class BoxPlaceEnv(DirectRLEnv):
 
     def randomize_toy(self, env_ids):
         
-        if self.cfg.target_box is None:
+        if self.cfg.task_index is None:
             self.target_box = torch.randint(low=0,high=3,size=(1,1,), device=self.device)
-        else:
-            self.target_box = self.cfg.target_box
+        elif self.cfg.task_index in (1, 2, 3):
+            self.target_box = self.cfg.task_index
+        else: 
+            raise ValueError(f"`task_index = {self.cfg.task_index}` is not valid. Choose one of (None, 1, 2, 3) for this env.")
         self.target_boxes = torch.full(
             size=(self.num_envs,1), fill_value=int(self.target_box), dtype=torch.int, device=self.device
         )

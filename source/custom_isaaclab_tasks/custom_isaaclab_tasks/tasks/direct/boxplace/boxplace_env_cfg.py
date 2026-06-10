@@ -12,6 +12,7 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMaterialCfg
 from isaaclab.utils import configclass
+import numpy as np
 
 from .factory_tasks_cfg import ASSET_DIR, FactoryTask, GearMesh, NutThread, PegInsert
 
@@ -105,15 +106,12 @@ class BoxPlaceEnvCfg(DirectRLEnvCfg):
     action_space = 7
     # num_*: will be overwritten to correspond to obs_order, state_order.
     observation_space = 21
-    state_space = 58
+    state_space = 63
     obs_order: list = [
-        "fingertip_pos_rel_fixed_0",
-        "fingertip_pos_rel_fixed_1",
-        "fingertip_pos_rel_fixed_2",
+        "fingertip_pos",
         "fingertip_quat",
         "ee_linvel",
         "ee_angvel",
-        "target_box",
     ]
     state_order: list = [
         "fingertip_pos",
@@ -152,7 +150,7 @@ class BoxPlaceEnvCfg(DirectRLEnvCfg):
     obs_rand: ObsRandCfg = ObsRandCfg()
     ctrl: CtrlCfg = CtrlCfg()
     write_image_to_file = False
-    target_box = None
+    task_index = None
     episode_length_s = 30.0  # Probably need to override.
     sim: SimulationCfg = SimulationCfg(
         device="cuda:1",
@@ -262,13 +260,15 @@ class BoxPlaceEnvCfg(DirectRLEnvCfg):
 
     tiled_camera: TiledCameraCfg = TiledCameraCfg(
         prim_path="/World/envs/env_.*/Robot/panda_fingertip_centered/Camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(0.05, 0, -0.05), rot=(0.3826834, 0, -0.9238795, 0), convention="world"),
+        # offset=TiledCameraCfg.OffsetCfg(pos=(0.05, 0, -0.05), rot=(0.3826834, 0, -0.9238795, 0), convention="world"),
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.15, 0, -0.05), rot=(np.cos((225/2)*np.pi/180), 0, np.sin((225/2)*np.pi/180), 0), convention="world"),
+        # offset=TiledCameraCfg.OffsetCfg(pos=(0.15, 0, -0.15), rot=(0, 0, 1, 0), convention="world"),
         data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=15.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 2.0)
         ),
-        width=64,
-        height=64,
+        width=128,
+        height=128,
     )
 
 
